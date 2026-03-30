@@ -1,0 +1,7 @@
+compile_commands.json
+dump
+*.o
+*.elf
+.cache/*
+build
+symbols.sym
