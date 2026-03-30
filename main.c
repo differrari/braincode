@@ -1,5 +1,6 @@
 #include "syscalls/syscalls.h"
 #include "files/helpers.h"
+#include "files/buffer.h"
 #include "input_keycodes.h"
 #include "uno.h"
 
@@ -10,10 +11,11 @@ struct {
     u32 fg;
 } palette;
 
-string code;
+buffer code;
+gpu_point offset;
 
 void ui(){
-    uno_text_field(main_code, (node_info){.fg_color = palette.fg }, (text_field_info){&code, slice_from_literal(""),.multiline = true});
+    uno_text_field(main_code, (node_info){.fg_color = palette.fg, .offset = offset, .sizing_rule = size_fill }, (text_field_info){&code, slice_from_literal(""),.multiline = true});
 }
 
 int main(int argc, char *argv[]){
@@ -22,7 +24,14 @@ int main(int argc, char *argv[]){
     
     size_t size;
     char *contents = read_full_file(file, &size);
-    code = string_from_literal(contents);
+    
+    code = (buffer){
+        .buffer = contents, 
+        .buffer_size = size,
+        .cursor = 0,
+        .limit = size,
+        .options = buffer_can_grow,
+    };
     
     print(contents);
     
@@ -45,10 +54,24 @@ int main(int argc, char *argv[]){
         kbd_event event = {};
         if (read_event(&event)){
             if (event.key == KEY_ESC) halt(0);
+            else if (event.type == KEY_PRESS && ((event.key >= KEY_RIGHT && event.key <= KEY_UP) || event.key == KEY_PAGEUP || event.key == KEY_PAGEDOWN )){
+                switch (event.key) {
+                    case KEY_RIGHT: offset.x -= 20; break;
+                    case KEY_LEFT: offset.x += 20; break;
+                    case KEY_DOWN: offset.y -= 20; break;
+                    case KEY_UP: offset.y += 20; break;
+                    case KEY_PAGEDOWN: offset.y -= ctx.height; break;
+                    case KEY_PAGEUP: offset.y += ctx.height; break;
+                }
+                uno_refresh();
+            }
             else {
                 uno_dispatch_kbd(event);
             }
         }
+        mouse_data mouse = {};
+        get_mouse_status(&mouse);
+        uno_dispatch_mouse(mouse);        
     }
     
     return 0;
