@@ -71,7 +71,11 @@ int main(int argc, char *argv[]){
         }
         mouse_data mouse = {};
         get_mouse_status(&mouse);
-        uno_dispatch_mouse(mouse);        
+        uno_dispatch_mouse(mouse);    
+        if (mouse.raw.scroll){
+            offset.y += mouse.raw.scroll * 20;
+            uno_refresh();
+        }
     }
     
     return 0;
