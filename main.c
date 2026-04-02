@@ -3,6 +3,8 @@
 #include "files/buffer.h"
 #include "input_keycodes.h"
 #include "uno.h"
+#include "math/math.h"
+#include "ui/color/color.h"
 
 enum { no_input, main_code } input_focus;
 
@@ -14,8 +16,10 @@ struct {
 buffer code;
 gpu_point offset;
 
+text_field_info tf_info;
+
 void ui(){
-    uno_text_field(main_code, (node_info){.fg_color = palette.fg, .offset = offset, .sizing_rule = size_fill }, (text_field_info){&code, slice_from_literal(""),.multiline = true});
+    uno_text_field(main_code, (node_info){.fg_color = palette.fg, .offset = offset, .sizing_rule = size_fill }, &tf_info);
 }
 
 int main(int argc, char *argv[]){
@@ -40,8 +44,10 @@ int main(int argc, char *argv[]){
     
     sreadf("/theme", &palette, sizeof(palette));
     
-    palette.bg += 0x00111111;
+    palette.bg -= 0x00111111;
     palette.fg -= 0x00111111;
+    
+    tf_info = (text_field_info){ &code, slice_from_literal(""), .multiline = true, .cursor_color = complementary_color(palette.bg)};
     
     set_document_view(ui, (gpu_rect){0,0,ctx.width,ctx.height});
     
@@ -55,14 +61,25 @@ int main(int argc, char *argv[]){
         if (read_event(&event)){
             if (event.key == KEY_ESC) halt(0);
             else if (event.type == KEY_PRESS && ((event.key >= KEY_RIGHT && event.key <= KEY_UP) || event.key == KEY_PAGEUP || event.key == KEY_PAGEDOWN )){
+                i32 x_shift, y_shift = 0;
                 switch (event.key) {
-                    case KEY_RIGHT: offset.x -= 20; break;
-                    case KEY_LEFT: offset.x += 20; break;
-                    case KEY_DOWN: offset.y -= 20; break;
-                    case KEY_UP: offset.y += 20; break;
+                    case KEY_RIGHT: x_shift = 1; break;
+                    case KEY_LEFT: x_shift = -1; break;
+                    case KEY_DOWN: y_shift = 1; break;
+                    case KEY_UP: y_shift = -1; break;
                     case KEY_PAGEDOWN: offset.y -= ctx.height; break;
                     case KEY_PAGEUP: offset.y += ctx.height; break;
                 }
+                if (x_shift)
+                    code.cursor += x_shift;
+                if (y_shift){
+                    string_slice slice = (string_slice){code.buffer,code.buffer_size};
+                    i32 lin, col = 0;
+                    pos_to_lin_col(code.cursor, slice, &lin, &col);
+                    lin += y_shift;
+                    code.cursor = lin_col_to_pos(lin, col, slice);
+                }
+                code.cursor = clamp(code.cursor, 0, code.buffer_size-1);
                 uno_refresh();
             }
             else {
@@ -73,7 +90,10 @@ int main(int argc, char *argv[]){
         get_mouse_status(&mouse);
         uno_dispatch_mouse(mouse);    
         if (mouse.raw.scroll){
-            offset.y += mouse.raw.scroll * 20;
+            if (tf_info.modifier & KEY_MOD_LSHIFT)
+                offset.x += mouse.raw.scroll * 20;
+            else        
+                offset.y += mouse.raw.scroll * 20;
             uno_refresh();
         }
     }

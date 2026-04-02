@@ -1,11 +1,12 @@
 @includeC("redbuild.h")
 
-void main {
+int main {
 
     defer emit_compile_commands();
     rebuild_self();
     
     if (not make_run("~/uno","")){ return 1; }
+    if (not make_run("~/redlib","")){ return 1; }
     
     new_module("braincode");
     set_name("braincode");
