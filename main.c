@@ -14,17 +14,20 @@ struct {
 } palette;
 
 buffer code;
-gpu_point offset;
 
 text_field_info tf_info;
-
-#define line_height 26
-#define char_width 24
 
 const char *file_path = "/shared/projects/code/braincode/main.c";
 
 void ui(){
-    uno_text_field(main_code, (node_info){.fg_color = palette.fg, .offset = offset, .sizing_rule = size_fill }, &tf_info);
+    HORIZONTAL(((node_info){.sizing_rule = size_fill, .bg_color = 0xFF126100}),{
+        uno_text_field(main_code, (node_info){.sizing_rule = size_fill,.fg_color = palette.fg }, &tf_info);
+        VERTICAL(((node_info){.bg_color = 0xFF664b00, .sizing_rule = size_relative, .percentage = 0.25f, .padding = 10 }), {
+            uno_label((node_info){}, doc_text_body, slice_from_literal("file1"));
+            uno_label((node_info){}, doc_text_body, slice_from_literal("file2"));
+            uno_label((node_info){}, doc_text_body, slice_from_literal("file3"));
+        });
+    });
 }
 
 void scroll_in_line(bool begin){
@@ -40,6 +43,10 @@ void scroll_in_line(bool begin){
     }
     code.cursor = clamp(code.cursor, 0, code.buffer_size);
     uno_refresh();
+}
+
+bool save_file(){
+    return write_full_file(file_path, code.buffer, code.buffer_size);
 }
 
 int main(int argc, char *argv[]){
@@ -91,35 +98,21 @@ int main(int argc, char *argv[]){
                     case KEY_DOWN:  y_shift = 1; break;
                     case KEY_UP:    y_shift = -1; break;
                     case KEY_PAGEDOWN:  
-                        y_shift = (ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
+                        // y_shift = (ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
                         // offset.y -= ctx.height;
                         break;
                     case KEY_PAGEUP: 
-                        y_shift = -(ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
+                        // y_shift = -(ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
                         // offset.y += ctx.height;
                         break;
                 }
-                if (x_shift){
-                    if ((i64)code.cursor + x_shift < 0) code.cursor = 0;
-                    else code.cursor += x_shift;
-                    i32 lin, col = 0;
-                    string_slice slice = (string_slice){code.buffer,code.buffer_size};
-                    pos_to_lin_col(code.cursor, slice, &lin, &col);
-                    if (col - (offset.x/char_width) >= ctx.width/char_width) offset.x -= x_shift * char_width;
-                }
-                if (y_shift){
-                    i32 lin, col = 0;
-                    string_slice slice = (string_slice){code.buffer,code.buffer_size};
-                    pos_to_lin_col(code.cursor, slice, &lin, &col);
-                    if (lin + y_shift < 0) lin = 0;
-                    else lin += y_shift;
-                    code.cursor = lin_col_to_pos(lin, col, slice);
-                    if (lin - (offset.y/line_height) > ctx.height/line_height) offset.y -= y_shift * line_height;
-                }
-                code.cursor = clamp(code.cursor, 0, code.buffer_size);
+                if (x_shift || y_shift)
+                    uno_text_field_shift_cursor(main_code, x_shift,y_shift);
                 uno_refresh();
-            }
-            else {
+            } else if (tf_info.modifier == KEY_MOD_LCTRL && event.type == KEY_PRESS && event.key == KEY_S){
+                if (save_file())
+                    print("Saved file");
+            } else {
                 uno_dispatch_kbd(event);
             }
         }
@@ -127,13 +120,10 @@ int main(int argc, char *argv[]){
         get_mouse_status(&mouse);
         uno_dispatch_mouse(mouse);    
         if (mouse.raw.scroll){
-            i32 increase = mouse.raw.scroll * line_height * 3;
             if (tf_info.modifier & KEY_MOD_LSHIFT){
-                if (offset.x + increase > 0) offset.x = 0;
-                else offset.x += increase;
+                uno_text_field_scroll(main_code, mouse.raw.scroll, 0);
             } else {        
-                if (offset.y + increase > 0) offset.y = 0;
-                else offset.y += increase;   
+                uno_text_field_scroll(main_code, 0, mouse.raw.scroll);
             }
             uno_refresh();
         }
