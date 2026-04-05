@@ -20,13 +20,8 @@ text_field_info tf_info;
 const char *file_path = "/shared/projects/code/braincode/main.c";
 
 void ui(){
-    HORIZONTAL(((node_info){.sizing_rule = size_fill, .bg_color = 0xFF126100}),{
+    HORIZONTAL(((node_info){.sizing_rule = size_fill}),{
         uno_text_field(main_code, (node_info){.sizing_rule = size_fill,.fg_color = palette.fg }, &tf_info);
-        VERTICAL(((node_info){.bg_color = 0xFF664b00, .sizing_rule = size_relative, .percentage = 0.25f, .padding = 10 }), {
-            uno_label((node_info){}, doc_text_body, slice_from_literal("file1"));
-            uno_label((node_info){}, doc_text_body, slice_from_literal("file2"));
-            uno_label((node_info){}, doc_text_body, slice_from_literal("file3"));
-        });
     });
 }
 

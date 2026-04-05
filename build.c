@@ -2,11 +2,6 @@
 int main(){
 	int __return_val;
 	rebuild_self();
-	if (!make_run("~/uno", "")){
-		__return_val = 1;
-		goto defer;
-	}
-	
 	if (!make_run("~/redlib", "")){
 		__return_val = 1;
 		goto defer;
