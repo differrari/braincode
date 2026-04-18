@@ -28,21 +28,6 @@ void ui(){
     });
 }
 
-void scroll_in_line(bool begin){
-    bool found = false;
-    if (begin){
-        for (u64 i = code.cursor; i > 0; i--)
-            if (((char*)code.buffer)[i-1] == '\n'){ found = true; code.cursor = i; break; }
-        if (!found) code.cursor = 0;
-    } else {
-        for (u64 i = code.cursor; i < code.buffer_size; i++)
-            if (((char*)code.buffer)[i+1] == '\n'){ found = true; code.cursor = i; break; }
-        if (!found) code.cursor = code.buffer_size;
-    }
-    code.cursor = clamp(code.cursor, 0, code.buffer_size);
-    uno_refresh();
-}
-
 bool save_file(){
     return write_full_file(file_path, code.buffer, code.buffer_size);
 }
@@ -91,31 +76,7 @@ int main(int argc, char *argv[]){
             if (handle_copy(&event, uno_copy)) continue;
             if (handle_paste(&event, uno_paste)) continue;
             if (event.key == KEY_ESC) halt(0);
-            if (event.key == KEY_HOME)
-                scroll_in_line(true);
-            if (event.key == KEY_END)
-                scroll_in_line(false);
-            else if (event.type == KEY_PRESS && ((event.key >= KEY_RIGHT && event.key <= KEY_UP) || event.key == KEY_PAGEUP || event.key == KEY_PAGEDOWN )){
-                i32 x_shift = 0;
-                i32 y_shift = 0;
-                switch (event.key) {
-                    case KEY_RIGHT: x_shift = 1; break;
-                    case KEY_LEFT:  x_shift = -1; break;
-                    case KEY_DOWN:  y_shift = 1; break;
-                    case KEY_UP:    y_shift = -1; break;
-                    case KEY_PAGEDOWN:  
-                        // y_shift = (ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
-                        // offset.y -= ctx.height;
-                        break;
-                    case KEY_PAGEUP: 
-                        // y_shift = -(ctx.height/line_height)-1;//DEADLINE: 2026-06-09 patent on PGUP/PGDOWN expires
-                        // offset.y += ctx.height;
-                        break;
-                }
-                if (x_shift || y_shift)
-                    uno_text_field_shift_cursor(main_code, x_shift,y_shift);
-                uno_refresh();
-            } else if (current_modifier & KEY_MOD_LMETA && event.type == KEY_PRESS && event.key == KEY_S){
+            else if (current_modifier & KEY_MOD_LMETA && event.type == KEY_PRESS && event.key == KEY_S){
                 if (save_file())
                     print("Saved file");
             } else {
@@ -125,14 +86,6 @@ int main(int argc, char *argv[]){
         mouse_data mouse = {};
         get_mouse_status(&mouse);
         uno_dispatch_mouse(mouse, current_modifier);    
-        if (mouse.raw.scroll){
-            if (current_modifier & KEY_MOD_LSHIFT){
-                uno_text_field_scroll(main_code, mouse.raw.scroll, 0);
-            } else {        
-                uno_text_field_scroll(main_code, 0, mouse.raw.scroll);
-            }
-            uno_refresh();
-        }
     }
     
     return 0;
