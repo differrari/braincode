@@ -1,16 +1,19 @@
 @includeC("redbuild.h")
 
-int main {
+int main(int argc, strarr argv) {
 
+    parse_arguments(argc,argv);
+    rebuild_self(false);
     defer emit_compile_commands();
-    rebuild_self();
-
     
+    if (global_target == target_none){ set_global_target(target_redacted); }
+    
+    if (not redbuild_run("~/uno")){ return 1; }
+
     new_module("braincode");
     set_name("braincode");
     
     set_package_type(package_red);
-    set_target(target_redacted);
 	ignore_source("build.c");
     source_all("c");
     
@@ -18,7 +21,11 @@ int main {
     
     if (compile()){
         gen_compile_commands(0);
-        install("../../../applications");
-        make_run("~/os","run");
+        if (global_target == native_target){
+            run();
+        } else {
+            install("../../../applications");
+            make_run("~/os","run");
+        }
     }
 }

@@ -5,8 +5,11 @@
 #include "uno.h"
 #include "math/math.h"
 #include "ui/color/color.h"
+#include "kbd_helper.h"
 
 enum { no_input, main_code } input_focus;
+
+//TODO: file selector
 
 struct {
     u32 bg;
@@ -17,7 +20,7 @@ buffer code;
 
 text_field_info tf_info;
 
-const char *file_path = "/shared/projects/code/braincode/main.c";
+char *file_path = "/shared/projects/code/braincode/main.c";
 
 void ui(){
     HORIZONTAL(((node_info){.sizing_rule = size_fill}),{
@@ -46,8 +49,14 @@ bool save_file(){
 
 int main(int argc, char *argv[]){
     
+    if (argc){
+        file_path = argv[0];
+    }
+    
     size_t size = 0x1000;
     char *contents = read_full_file(file_path, &size);
+    
+    if (!contents) contents = zalloc(size);
     
     code = (buffer){
         .buffer = contents, 
@@ -57,15 +66,14 @@ int main(int argc, char *argv[]){
         .options = buffer_can_grow,
     };
     
-    print(contents);
-    
     draw_ctx ctx = {};
     request_draw_ctx(&ctx);
     
     sreadf("/theme", &palette, sizeof(palette));
     
-    palette.bg -= 0x00111111;
-    palette.fg -= 0x00111111;
+    if (palette.bg) palette.bg -= 0x00111111;
+    else if (!palette.fg) palette.fg = 0xFFFFFFFF;
+    if (palette.fg) palette.fg -= 0x00111111;
     
     tf_info = (text_field_info){ &code, slice_from_literal(""), .multiline = true, .cursor_color = complementary_color(palette.bg)};
     
@@ -78,7 +86,10 @@ int main(int argc, char *argv[]){
         uno_draw(&ctx);
         commit_draw_ctx(&ctx);
         kbd_event event = {};
-        if (read_event(&event)){
+        while (read_event(&event)){
+            if (handle_modifier(&event)) continue;
+            if (handle_copy(&event, uno_copy)) continue;
+            if (handle_paste(&event, uno_paste)) continue;
             if (event.key == KEY_ESC) halt(0);
             if (event.key == KEY_HOME)
                 scroll_in_line(true);
@@ -104,18 +115,18 @@ int main(int argc, char *argv[]){
                 if (x_shift || y_shift)
                     uno_text_field_shift_cursor(main_code, x_shift,y_shift);
                 uno_refresh();
-            } else if (tf_info.modifier == KEY_MOD_LCTRL && event.type == KEY_PRESS && event.key == KEY_S){
+            } else if (current_modifier & KEY_MOD_LMETA && event.type == KEY_PRESS && event.key == KEY_S){
                 if (save_file())
                     print("Saved file");
             } else {
-                uno_dispatch_kbd(event);
+                uno_dispatch_kbd(event, current_modifier);
             }
         }
         mouse_data mouse = {};
         get_mouse_status(&mouse);
-        uno_dispatch_mouse(mouse);    
+        uno_dispatch_mouse(mouse, current_modifier);    
         if (mouse.raw.scroll){
-            if (tf_info.modifier & KEY_MOD_LSHIFT){
+            if (current_modifier & KEY_MOD_LSHIFT){
                 uno_text_field_scroll(main_code, mouse.raw.scroll, 0);
             } else {        
                 uno_text_field_scroll(main_code, 0, mouse.raw.scroll);
