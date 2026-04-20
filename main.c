@@ -6,6 +6,7 @@
 #include "math/math.h"
 #include "ui/color/color.h"
 #include "kbd_helper.h"
+#include "memory/memory.h"
 
 enum { no_input, main_code } input_focus;
 
@@ -22,9 +23,11 @@ text_field_info tf_info;
 
 char *file_path = "/shared/projects/code/braincode/main.c";
 
+stack_t *format_rules;
+
 void ui(){
     HORIZONTAL(((node_info){.sizing_rule = size_fill}),{
-        uno_text_field(main_code, (node_info){.sizing_rule = size_fill,.fg_color = palette.fg }, &tf_info);
+        uno_text_field(main_code, (node_info){.sizing_rule = size_fill,.fg_color = palette.fg, .text_formatting = stack_to_text_format(format_rules) }, &tf_info);
     });
 }
 
@@ -42,6 +45,16 @@ int main(int argc, char *argv[]){
     char *contents = read_full_file(file_path, &size);
     
     if (!contents) contents = zalloc(size);
+    
+    format_rules = stack_create(sizeof(text_format), size/32);
+    
+    for (size_t i = 0; i < size; i++){
+        char *instance = memmem(contents + i, size-i, "#include", 8);
+        if (!instance) break;
+        size_t new_i = instance-contents;
+        i = new_i;
+        stack_push(format_rules, &(text_format){ .color = 0xFFfcba03, .bounds = { i, 8 }});
+    }
     
     code = (buffer){
         .buffer = contents, 
