@@ -23,7 +23,7 @@ text_field_info tf_info;
 
 char *file_path = "/shared/projects/code/braincode/main.c";
 
-stack_t *format_rules;
+arr_stack_t *format_rules;
 
 void ui(){
     HORIZONTAL(((node_info){.sizing_rule = size_fill}),{
