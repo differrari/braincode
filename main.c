@@ -140,14 +140,8 @@ int main(int argc, char *argv[]){
     request_draw_ctx(&ctx);
 
     int fb_w = ctx.width/4, fb_h = ctx.height;
-    color* fb_fb = zalloc(fb_w * fb_h * sizeof(color));
     
-    filebrowser_ctx = (draw_ctx){
-        .fb = fb_fb,
-        .width = fb_w,
-        .height = fb_h,
-        .stride = fb_w * sizeof(color),
-    };
+    filebrowser_ctx = dummy_draw_ctx(fb_w, fb_h);
 
     filebrowser_handle_path = handle_filepath;
     init_filebrowser(project_path.data);
@@ -174,7 +168,7 @@ int main(int argc, char *argv[]){
         fb_clear(&ctx, palette.bg);
         uno_draw(&ctx);
         filebrowser_ctx.full_redraw = true;
-        if (open_fb) composite(&filebrowser_ctx, (int_point){0,0}, 1, &ctx);
+        if (open_fb) composite(&filebrowser_ctx, (int_point){}, 1, &ctx);
         commit_draw_ctx(&ctx);
         kbd_event event = {};
         while (read_event(&event)){
