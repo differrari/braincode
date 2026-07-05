@@ -7,5 +7,5 @@
         :type :bin
         :target (redbuild:native)
         :libs (list (redbuild:local-lib "uno" :lib "uno.a"))
-        :srcs (list "brain.c")
+        :srcs (list "brain.c" "tree_layout.c")
 ) :add-dependencies t :run t :success (lambda () (print "Done") (print (redbuild:emit-compile-commands))))
