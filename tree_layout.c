@@ -43,8 +43,11 @@ void tree_draw_element(tree_layout_node *node){
 
 int tree_id = 1;
 
+void *tree_page = 0;
+
 tree_layout_node* tree_alloc(tree_layout_type type){
-    tree_layout_node *node = zalloc(sizeof(tree_layout_node));
+    if (!tree_page) tree_page = page_alloc(PAGE_SIZE);
+    tree_layout_node *node = allocate(tree_page,sizeof(tree_layout_node),page_alloc);
     node->type = type;
     if (type == tree_content){
         node->id = tree_id++;

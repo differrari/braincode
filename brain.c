@@ -21,8 +21,11 @@ document_node* on_draw_tree_leaf(int id, void *ctx, bool selected){
     return doc_node;
 }
 
+void* buf_page = 0;
+
 void* popuplate_tree_leaf(){
-    buffer_ctx *buf_ctx = zalloc(sizeof(buffer_ctx));
+    if (!buf_page) buf_page = page_alloc(PAGE_SIZE);
+    buffer_ctx *buf_ctx = allocate(buf_page,sizeof(buffer_ctx),page_alloc);
     buf_ctx->buf = buffer_create(0x100, buffer_can_grow);
     
     buf_ctx->tf_info = (text_field_info){
