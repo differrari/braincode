@@ -14,7 +14,7 @@ typedef struct {
 document_node* on_draw_tree_leaf(int id, void *ctx, bool selected){
     uno_begin_vertical((node_info){.sizing_rule = size_fill});
     buffer_ctx *buf_ctx = ctx;
-    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word, .fg_color = 0xFFFFFFFF }, &buf_ctx->tf_info);
+    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word_preserve_indent, .fg_color = 0xFFFFFFFF }, &buf_ctx->tf_info);
     if (selected)
         uno_label((node_info){.sizing_rule = size_fit, .fg_color = 0xFF887766, .bg_color = 0x55554433 }, doc_text_footnote, SLICE_LIT("CURRENT"));
     uno_end_vertical();
@@ -30,7 +30,9 @@ void* popuplate_tree_leaf(){
     
     buf_ctx->tf_info = (text_field_info){
         .content = &buf_ctx->buf,
-        .placeholder = SLICE_LIT("new buffer")
+        .placeholder = SLICE_LIT("new buffer"),
+        .multiline = true,
+        .cursor_color = 0xFF376290
     };
     return buf_ctx;
 }
