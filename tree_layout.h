@@ -26,6 +26,7 @@ tree_layout_node* tree_find_id(tree_layout_node *node, int id);
 
 extern void* popuplate_tree_leaf();
 extern document_node* on_draw_tree_leaf(int id, void *ctx, bool selected);
+extern void cleanup_tree_leaf(int id, void*ctx);
 
 typedef enum {
     tree_create_vertical = 0 << 0,
@@ -43,13 +44,17 @@ static inline void tree_select_node(tree_layout_node *node){
 }
 
 void tree_draw_frame();
-void init_tree(draw_ctx *ctx);
+void init_tree(draw_ctx *ctx, void (*custom_draw)(), int initial_id);
 
 void draw_tree(draw_ctx *ctx);
 
 void tree_debug();
 
 void tree_cycle_node();
+
+void tree_close(tree_layout_node *node);
+
+void tree_close_current();
 
 static inline void tree_draw(draw_ctx *ctx){
     uno_draw(ctx);

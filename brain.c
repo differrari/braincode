@@ -32,6 +32,10 @@ void* popuplate_tree_leaf(){
     return buf_ctx;
 }
 
+extern void cleanup_tree_leaf(int id, void*ctx){
+    release(ctx);
+}
+
 int main(int argc, char *argv[]){
     print("Welcome to brain");
 
@@ -39,7 +43,7 @@ int main(int argc, char *argv[]){
     ctx.height = 1080;
     request_app_ctx(&ctx);
 
-    init_tree(&ctx);
+    init_tree(&ctx, 0, 1);
     // set_document_view(tree_draw_frame, draw_ctx_rect(ctx));
 
     while (!should_close_ctx()){
@@ -56,6 +60,7 @@ int main(int argc, char *argv[]){
                             case KEY_DOWN: new_tree_node(tree_create_after | tree_create_vertical); break;
                             case KEY_LEFT: new_tree_node(tree_create_before | tree_create_horizontal); break;
                             case KEY_RIGHT: new_tree_node(tree_create_after | tree_create_horizontal); break;
+                            case KEY_W: tree_close_current(); break;
                             case KEY_ESC: halt(0);
                         }
                         if (ev.key == KEY_TAB) tree_cycle_node();

@@ -45,9 +45,9 @@ int tree_id = 1;
 
 tree_layout_node* tree_alloc(tree_layout_type type){
     tree_layout_node *node = zalloc(sizeof(tree_layout_node));
-    node->id = tree_id++;
     node->type = type;
     if (type == tree_content){
+        node->id = tree_id++;
         node->ctx = popuplate_tree_leaf();
     }
     return node;
@@ -165,9 +165,32 @@ void tree_draw_frame(){
     tree_draw_element(root);
 }
 
-void init_tree(draw_ctx *ctx){
+void init_tree(draw_ctx *ctx, void (*custom_draw)(), int initial_id){
+    if (initial_id) tree_id = initial_id;
     root = tree_alloc(tree_content);
     current_layout_node = root;
-    set_document_view(tree_draw_frame, draw_ctx_rect(ctx));
-    uno_focus(1);
+    set_document_view(custom_draw ?: tree_draw_frame, draw_ctx_rect(ctx));
+    uno_focus(root->id);
+}
+
+void tree_close(tree_layout_node *node){
+    if (!node) return;
+    tree_layout_node *parent = node->parent;
+    if (!parent) return;
+    cleanup_tree_leaf(node->id,node->ctx);
+    tree_layout_node *prev = 0;
+    tree_layout_node *curr = parent->first_child;
+    if (curr == node){
+        if (prev) prev->next = node->next;
+        else parent->first_child = node->next;
+    }
+    if (node == current_layout_node){
+        current_layout_node = tree_find_next(root, false);
+    }
+}
+
+void tree_close_current(){
+    tree_layout_node *old = current_layout_node;
+    tree_cycle_node();
+    tree_close(old);
 }
