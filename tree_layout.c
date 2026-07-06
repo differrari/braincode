@@ -6,25 +6,19 @@
 tree_layout_node *root;
 tree_layout_node *current_layout_node;
 
-bool tree_mouse(document_node *node, mouse_data data, u8 modifier){
-    if (mouse_button_down(&data, LMB)){
-        tree_select_node_id(node->input.tag);
-    }
-    return uno_text_field_mouse(node, data, modifier);
-}
-
-
 bool tree_select_node_id(int id){
     tree_layout_node *tree = tree_find_id(root,id);
-    if (tree) current_layout_node = tree;
+    if (tree) {
+        current_layout_node = tree;
+        uno_focus(id);
+    }
     return tree > 0;
 }
 
 void tree_draw_element(tree_layout_node *node){
     switch (node->type) {
         case tree_content: {
-            document_node *dnode = on_draw_tree_leaf(node->id, node->ctx, current_layout_node == node);
-            if(dnode) dnode->input.mouse_input = tree_mouse; 
+            on_draw_tree_leaf(node->id, node->ctx, current_layout_node == node);
         }
         break;
         case tree_horizontal:
@@ -121,6 +115,14 @@ void tree_cycle_node(){
     }
 }
 
+int tree_deselect_current(){
+    if (!current_layout_node) return 0;
+    int current = current_layout_node->id;
+    current_layout_node = 0;
+    uno_focus(0);
+    return current;
+}
+
 void new_tree_node(tree_create_options opts){
     bool horizontal = opts & 1;
     bool before = (opts >> 1) & 1;
@@ -190,6 +192,10 @@ void tree_close(tree_layout_node *node){
     if (node == current_layout_node){
         current_layout_node = tree_find_next(root, false);
     }
+}
+
+tree_layout_node* tree_find(int id){
+    return tree_find_id(root, id);
 }
 
 void tree_close_current(){

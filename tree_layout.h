@@ -56,6 +56,10 @@ void tree_close(tree_layout_node *node);
 
 void tree_close_current();
 
+int tree_deselect_current();
+
+tree_layout_node* tree_find(int id);
+
 static inline void tree_draw(draw_ctx *ctx){
     uno_draw(ctx);
 }

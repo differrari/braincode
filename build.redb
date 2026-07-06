@@ -15,6 +15,8 @@ int main(int argc, strarr argv) {
     
     set_package_type(package_red);
 	ignore_source("build.c");
+	ignore_source("brain.c");
+	ignore_source("tree_layout.c");
     source_all("c");
     
     add_local_dependency("~/uno", "~/uno/uno.a", "~/uno", true);
