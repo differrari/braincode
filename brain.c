@@ -3,6 +3,10 @@
 #include "input_keycodes.h"
 #include "kbd_helper.h"
 #include "files/helpers.h"
+#include "math/rng.h"
+#include "brain.h"
+#include "file/file_source.h"
+#include "shell/shell_source.h"
 
 draw_ctx ctx;
 
@@ -13,13 +17,15 @@ typedef enum {
     custom_buffers_count,
 } custom_buffer_ids;
 
-typedef struct {
-    text_field_info tf_info;
-    buffer buf;
-    string path;
-} buffer_ctx;
+color current_color = 0xFF362872;
 
-buffer_ctx command_buffer;
+int source_count = 1;
+
+int register_source_type(){
+    return source_count++;
+}
+
+source_type_file command_buffer;
 int current_buf = custom_buffers_count;
 bool in_command = false;
 
@@ -34,11 +40,11 @@ bool buf_mouse(document_node *node, mouse_data data, u8 modifier){
 
 document_node* on_draw_tree_leaf(int id, void *ctx, bool selected){
     uno_begin_vertical((node_info){.sizing_rule = size_fill});
-    buffer_ctx *buf_ctx = ctx;
-    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word_preserve_indent, .fg_color = 0xFFFFFFFF }, &buf_ctx->tf_info);
+    source_type_file *buf_ctx = ctx;
+    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word_preserve_indent, .fg_color = 0xFFFFFFFF }, &buf_ctx->header.text_info);
     doc_node->input.mouse_input = buf_mouse;
     if (selected)
-        uno_label((node_info){.sizing_rule = size_fit, .fg_color = 0xFF887766, .bg_color = 0x55554433 }, doc_text_footnote, SLICE_LIT("CURRENT"));
+        uno_label((node_info){.sizing_rule = size_fit, .fg_color = 0xFF847237, .bg_color = 0x55736126 }, doc_text_footnote, SLICE_LIT("CURRENT"));
     uno_end_vertical();
     return doc_node;
 }
@@ -46,7 +52,7 @@ document_node* on_draw_tree_leaf(int id, void *ctx, bool selected){
 void save_current_buffer(){
     if (current_buf < custom_buffers_count) return;
     tree_layout_node *node = tree_find(current_buf);
-    buffer_ctx *bctx = node->ctx;
+    source_type_file *bctx = node->ctx;
     print("Save %i to %S",current_buf,bctx->path);
     if (bctx->path.data)
         write_full_file(bctx->path.data, bctx->buf.buffer, bctx->buf.buffer_size);
@@ -56,16 +62,8 @@ void* buf_page = 0;
 
 void* popuplate_tree_leaf(){
     if (!buf_page) buf_page = page_alloc(PAGE_SIZE);
-    buffer_ctx *buf_ctx = allocate(buf_page,sizeof(buffer_ctx),page_alloc);
-    buf_ctx->buf = buffer_create(0x100, buffer_can_grow);
-    
-    buf_ctx->tf_info = (text_field_info){
-        .content = &buf_ctx->buf,
-        .placeholder = SLICE_LIT("new buffer"),
-        .multiline = true,
-        .cursor_color = 0xFFFFFFFF
-    };
-    return buf_ctx;
+    void *lctx = brain_create_shell_source();
+    return lctx;
 }
 
 extern void cleanup_tree_leaf(int id, void*ctx){
@@ -87,21 +85,12 @@ void close_command_buffer(int new_buf){
 bool handle_command(string_slice cmd){
     if (current_buf < custom_buffers_count) return false;
     tree_layout_node *node = tree_find(current_buf);
-    buffer_ctx *bctx = node->ctx;
-    //TODO: check for unsaved changes in the path
-    buffer_destroy(&bctx->buf);
-    string path = string_from_slice(cmd);
-    size_t size = 0;
-    char *f = read_full_file(path.data, &size);
-    bctx->buf = (buffer){
-        .buffer = f,
-        .buffer_size = size,
-        .limit = size,
-        .options = buffer_can_grow,
-        .cursor = 0,
-    };
-    bctx->path = path;
-    print("Open file %v",cmd);
+    buffer_source *bctx = node->ctx;
+    if (bctx->command_handler){
+        bctx->command_handler(bctx,cmd);
+    } else {
+        //Handle the command in the text editor's own shell
+    }
     return true;
 }
 
@@ -128,9 +117,9 @@ bool command_buffer_mouse(document_node *node, mouse_data data, u8 modifier){
 }
 
 void brain_update_view(){
-    VERTICAL(((node_info){.sizing_rule = size_fill, .bg_color = 0xFF362872}), {
+    VERTICAL(((node_info){.sizing_rule = size_fill, .bg_color = current_color}), {
         tree_draw_frame();
-        document_node* doc_node = uno_text_field(command_buffer_id, (node_info){.bg_color = 0xFF376298, .sizing_rule = size_relative, .percentage = 0.05f, .fg_color = 0xFFFFFFFF }, &command_buffer.tf_info);
+        document_node* doc_node = uno_text_field(command_buffer_id, (node_info){.bg_color = current_color, .sizing_rule = size_relative, .percentage = 0.05f, .fg_color = 0xFFFFFFFF }, &command_buffer.header.text_info);
         doc_node->input.mouse_input = command_buffer_mouse;
         doc_node->input.keyboard_input = command_buffer_kbd;
     });
@@ -144,7 +133,7 @@ int main(int argc, char *argv[]){
     request_app_ctx(&ctx);
 
     command_buffer.buf = buffer_create(0x100, buffer_can_grow);
-    command_buffer.tf_info = (text_field_info){
+    command_buffer.header.text_info = (text_field_info){
         .multiline = false,
         .cursor_color = 0xFFFFFFFF,
         .content = &command_buffer.buf,
@@ -152,6 +141,9 @@ int main(int argc, char *argv[]){
     };
 
     init_tree(&ctx, brain_update_view, custom_buffers_count);
+
+    rng_t rng = {};
+    rng_seed(&rng, get_time());
 
     while (!should_close_ctx()){
         fb_clear(&ctx, 0);
@@ -177,6 +169,7 @@ int main(int argc, char *argv[]){
                         switch (ev.key) {
                             case KEY_S: save_current_buffer(); break;
                             case KEY_W: tree_close_current(); break;
+                            case KEY_ENTER: current_color = rng_next32(&rng); current_color |= 0xFF000000; print("Current color: #%#X",current_color); break;
                         }
                     }
                     else tree_dispatch_kbd(ev, current_modifier);
