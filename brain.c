@@ -88,6 +88,7 @@ bool handle_command(string_slice cmd){
     buffer_source *bctx = node->ctx;
     if (bctx->command_handler){
         bctx->command_handler(bctx,cmd);
+        buffer_wipe(&command_buffer.buf);
     } else {
         //Handle the command in the text editor's own shell
     }
@@ -159,8 +160,8 @@ int main(int argc, char *argv[]){
                             case KEY_DOWN: new_tree_node(tree_create_after | tree_create_vertical); break;
                             case KEY_LEFT: new_tree_node(tree_create_before | tree_create_horizontal); break;
                             case KEY_RIGHT: new_tree_node(tree_create_after | tree_create_horizontal); break;
-                            case KEY_ESC: halt(0);
-                            case KEY_TAB: tree_cycle_node();
+                            case KEY_ESC: halt(0); break;
+                            case KEY_TAB: tree_cycle_node(); break;
                             case KEY_X: toggle_command_buffer(); break;
                             case KEY_S: save_current_buffer(); break;
                             case KEY_W: tree_close_current(); break;
@@ -183,5 +184,4 @@ int main(int argc, char *argv[]){
     }
 
     return 0;
-    
 }

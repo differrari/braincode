@@ -84,6 +84,7 @@ tree_layout_node* tree_find_id(tree_layout_node *node, int id){
 }
 
 tree_layout_node* tree_find_next(tree_layout_node *node, bool ignore_children){
+    if (!node) return 0;
     if (!ignore_children && node->first_child){
         if (node->first_child->type == tree_content){
             return node->first_child;
@@ -108,7 +109,7 @@ tree_layout_node* tree_find_next(tree_layout_node *node, bool ignore_children){
 void tree_cycle_node(){
     current_layout_node = tree_find_next(current_layout_node, false);
     if (!current_layout_node){
-        current_layout_node = tree_find_next(root, false);
+        current_layout_node = root->type == tree_content ? root : tree_find_next(root, false);
     }
     if (current_layout_node){
         uno_focus(current_layout_node->id);
