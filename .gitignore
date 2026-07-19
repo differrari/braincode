@@ -5,3 +5,4 @@ dump
 .cache/*
 build
 symbols.sym
+*.red/
