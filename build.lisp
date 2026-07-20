@@ -4,7 +4,11 @@
 (redbuild:set-global-target :linux)
 
 (redbuild:make "~/redlib" "cross")
+
+(defvar *beyond-lib* t)
+(defvar *beyond-interpreter* t)
 (redbuild:build-dep "~/beyond")
+
 (redbuild:build-dep "~/uno")
 
 (redbuild:quick-build (redbuild:make-instance `redbuild:redmod

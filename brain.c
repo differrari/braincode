@@ -160,7 +160,6 @@ void switch_current_buffer_mode(char *str){
 SHELLEY_CMD_FWD_1ARG(mode, switch_current_buffer_mode, string);
 
 void current_buffer_open(char *str){
-    print("EOPNE");
     if (current_buf < custom_buffers_count) return;
     tree_layout_node *node = tree_find(current_buf);
     buffer_source *bctx = node->ctx;

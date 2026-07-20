@@ -90,14 +90,9 @@ codegen shell_imaginal_fncall(codegen exp, codegen args, codegen *env){
 
 void shell_handle_cmd(void *ctx, string_slice cmd){
     source_type_shell *buf_ctx = ctx;
-    if (is_script(cmd)){
-        imaginal_fallback_fncall = shell_imaginal_fncall;
-        current_shell_ctx = buf_ctx;
-        repl_run(cmd, true);
-        current_shell_ctx = 0;
-    } else {
-        run_cmd(buf_ctx->shell, cmd);
-    }
+    if (buf_ctx->header.type != shell_type_id) return;
+    current_shell_ctx = buf_ctx;
+    run_cmd(buf_ctx->shell, cmd);
 }
 
 void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only){
@@ -108,6 +103,12 @@ void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only
     shell_handle *handle = create_sheldon(terminal_bindings, buf_ctx, builtin);
     sheldon_ctx *shctx = handle->local_ctx;
     shctx->script_only = script_only;
+    imaginal_repl_ctx *im = zalloc(sizeof(imaginal_repl_ctx));
+    im->should_print = true;
+    im->fallback = shell_imaginal_fncall;
+    handle->scripting.ctx = im;
+    handle->scripting.eval = repl_run;
+    handle->scripting.is_script = is_script;
     current_shell = handle;
     buf_ctx->header.text_info = (text_field_info){
         .content = &handle->out_buffer,
