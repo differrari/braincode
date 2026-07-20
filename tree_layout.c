@@ -106,14 +106,16 @@ tree_layout_node* tree_find_next(tree_layout_node *node, bool ignore_children){
     return 0;
 }
 
-void tree_cycle_node(){
+int tree_cycle_node(){
     current_layout_node = tree_find_next(current_layout_node, false);
     if (!current_layout_node){
         current_layout_node = root->type == tree_content ? root : tree_find_next(root, false);
     }
     if (current_layout_node){
         uno_focus(current_layout_node->id);
+        return current_layout_node->id;
     }
+    return 0;
 }
 
 int tree_deselect_current(){

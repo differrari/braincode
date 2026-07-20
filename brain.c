@@ -7,6 +7,8 @@
 #include "brain.h"
 #include "file/file_source.h"
 #include "shell/shell_source.h"
+#include "debug_print.h"
+#include "shell/sheldon/builtins.h"
 
 draw_ctx ctx;
 
@@ -21,11 +23,13 @@ color current_color = 0xFF362872;
 
 int source_count = 1;
 
+bool command_buffer_forward_input = false;
+
 int register_source_type(){
     return source_count++;
 }
 
-source_type_file command_buffer;
+source_type_shell *command_buffer;
 int current_buf = custom_buffers_count;
 bool in_command = false;
 
@@ -62,8 +66,7 @@ void* buf_page = 0;
 
 void* popuplate_tree_leaf(){
     if (!buf_page) buf_page = page_alloc(PAGE_SIZE);
-    void *lctx = brain_create_shell_source();
-    return lctx;
+    return brain_create_shell_source(0, false);
 }
 
 extern void cleanup_tree_leaf(int id, void*ctx){
@@ -71,7 +74,6 @@ extern void cleanup_tree_leaf(int id, void*ctx){
 }
 
 void open_command_buffer(){
-    current_buf = tree_deselect_current();
     uno_focus(command_buffer_id);
     in_command = true;
 }
@@ -83,14 +85,26 @@ void close_command_buffer(int new_buf){
 }
 
 bool handle_command(string_slice cmd){
-    if (current_buf < custom_buffers_count) return false;
-    tree_layout_node *node = tree_find(current_buf);
-    buffer_source *bctx = node->ctx;
-    if (bctx->command_handler){
+    if (slice_lit_match(cmd, "input", true)){
+        command_buffer_forward_input = !command_buffer_forward_input;
+        if (command_buffer_forward_input)
+            command_buffer->header.text_info.placeholder = SLICE("->");
+        else 
+            command_buffer->header.text_info.placeholder = SLICE(">");
+        buffer_wipe(&command_buffer->shell->out_buffer);
+        return true;
+    }
+    if (command_buffer_forward_input){
+        if (current_buf < custom_buffers_count) return false;
+        tree_layout_node *node = tree_find(current_buf);
+        buffer_source *bctx = node->ctx;
         bctx->command_handler(bctx,cmd);
-        buffer_wipe(&command_buffer.buf);
-    } else {
-        //Handle the command in the text editor's own shell
+        buffer_wipe(&command_buffer->shell->out_buffer);
+        return true;
+    } else if (command_buffer->header.command_handler) {
+        command_buffer->header.command_handler(command_buffer,cmd);
+        buffer_wipe(&command_buffer->shell->out_buffer);
+        return true;
     }
     return true;
 }
@@ -105,7 +119,7 @@ void toggle_command_buffer(){
 
 bool command_buffer_kbd(document_node *node, kbd_event event, u8 modifier){
     if (event.type == KEY_PRESS && event.key == KEY_ENTER){
-        return handle_command(slice_from_buffer(&command_buffer.buf));
+        return handle_command(slice_from_buffer(&command_buffer->shell->out_buffer));
     }
     return uno_text_field_input(node, event, modifier);
 }
@@ -120,10 +134,61 @@ bool command_buffer_mouse(document_node *node, mouse_data data, u8 modifier){
 void brain_update_view(){
     VERTICAL(((node_info){.sizing_rule = size_fill, .bg_color = current_color}), {
         tree_draw_frame();
-        document_node* doc_node = uno_text_field(command_buffer_id, (node_info){.bg_color = current_color, .sizing_rule = size_relative, .percentage = 0.05f, .fg_color = 0xFFFFFFFF }, &command_buffer.header.text_info);
+        document_node* doc_node = uno_text_field(command_buffer_id, (node_info){.bg_color = current_color, .sizing_rule = size_relative, .percentage = 0.05f, .fg_color = 0xFFFFFFFF }, &command_buffer->header.text_info);
         doc_node->input.mouse_input = command_buffer_mouse;
         doc_node->input.keyboard_input = command_buffer_kbd;
     });
+}
+
+void switch_current_buffer_mode(char *str){
+    if (current_buf < custom_buffers_count) return;
+    debug_print("Switching to %i to %s mode",current_buf,str);
+    
+    tree_layout_node *node = tree_find(current_buf);
+    if (!node){ debug_print("Couldn't find %i buffer",current_buf); return; }
+    buffer_source *bctx = node->ctx;
+
+    release(bctx);//TODO: proper cleanup
+
+    if (strcmp("shell", str) == 0){
+        node->ctx = brain_create_shell_source(0, false);
+    } else if (strcmp("file", str) == 0){
+        node->ctx = brain_create_file_source();
+    }
+    
+}
+SHELLEY_CMD_FWD_1ARG(mode, switch_current_buffer_mode, string);
+
+void current_buffer_open(char *str){
+    print("EOPNE");
+    if (current_buf < custom_buffers_count) return;
+    tree_layout_node *node = tree_find(current_buf);
+    buffer_source *bctx = node->ctx;
+    if (bctx->type != file_type_id){
+        switch_current_buffer_mode("file");
+        bctx = node->ctx;
+    }
+    fs_stat stat = {};
+    // if (statf(str, &stat)){
+        // if (stat.type != entry_file) return;//TODO: we should also handle directories
+        size_t size = 0;
+        char *contents = read_full_file(str, &size);
+        source_type_file *bfile = (source_type_file*)bctx;
+        bfile->buf = (buffer){
+            .buffer = contents,
+            .buffer_size = size,
+            .limit = size,
+            .options = buffer_can_grow,
+            .data_type = stat.data_type
+        };
+        bfile->path = string_from_literal(str);
+    // }
+}
+SHELLEY_CMD_FWD_1ARG(open, current_buffer_open, string);
+
+void register_command_buffer_builtins(shell_handle *handle){
+    REG_BUILTIN(mode);
+    REG_BUILTIN(open);
 }
 
 int main(int argc, char *argv[]){
@@ -133,14 +198,17 @@ int main(int argc, char *argv[]){
     ctx.height = 1080;
     request_app_ctx(&ctx);
 
-    command_buffer.buf = buffer_create(0x100, buffer_can_grow);
-    command_buffer.header.text_info = (text_field_info){
+    // command_buffer.buf = buffer_create(0x100, buffer_can_grow);
+
+    command_buffer = brain_create_shell_source(register_command_buffer_builtins, true);
+    command_buffer->header.text_info = (text_field_info){
         .multiline = false,
         .cursor_color = 0xFFFFFFFF,
-        .content = &command_buffer.buf,
+        .content = &command_buffer->shell->out_buffer,
         .placeholder = SLICE("> "),
     };
-
+    buffer_wipe(&command_buffer->shell->out_buffer);
+    
     init_tree(&ctx, brain_update_view, custom_buffers_count);
 
     rng_t rng = {};
@@ -161,7 +229,7 @@ int main(int argc, char *argv[]){
                             case KEY_LEFT: new_tree_node(tree_create_before | tree_create_horizontal); break;
                             case KEY_RIGHT: new_tree_node(tree_create_after | tree_create_horizontal); break;
                             case KEY_ESC: halt(0); break;
-                            case KEY_TAB: tree_cycle_node(); break;
+                            case KEY_TAB: current_buf = tree_cycle_node(); in_command = false; break;
                             case KEY_X: toggle_command_buffer(); break;
                             case KEY_S: save_current_buffer(); break;
                             case KEY_W: tree_close_current(); break;

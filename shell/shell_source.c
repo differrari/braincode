@@ -7,12 +7,12 @@
 int shell_type_id = 0;
 
 void put_char(shell_handle *handle, char c){
-    source_type_shell *buf_ctx = handle->owner;
-    buffer_write_lim(&buf_ctx->buf, &c, 1);
+    // source_type_shell *buf_ctx = handle->owner;
+    // buffer_write_lim(&buf_ctx->buf, &c, 1);
 }
 
 void flush(shell_handle *handle){
-    uno_refresh();
+    // uno_refresh();
 }
 
 void clear(shell_handle *handle){
@@ -100,13 +100,14 @@ void shell_handle_cmd(void *ctx, string_slice cmd){
     }
 }
 
-void* brain_create_shell_source(){
+void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only){
     if (!shell_type_id) shell_type_id = register_source_type();
     source_type_shell *buf_ctx = zalloc(sizeof(source_type_shell));
     buf_ctx->header.type = shell_type_id;
-    buf_ctx->buf = buffer_create(0x100, buffer_can_grow);
     buf_ctx->header.command_handler = shell_handle_cmd;
-    shell_handle *handle = create_sheldon(terminal_bindings, buf_ctx, 0);
+    shell_handle *handle = create_sheldon(terminal_bindings, buf_ctx, builtin);
+    sheldon_ctx *shctx = handle->local_ctx;
+    shctx->script_only = script_only;
     current_shell = handle;
     buf_ctx->header.text_info = (text_field_info){
         .content = &handle->out_buffer,

@@ -50,7 +50,7 @@ void draw_tree(draw_ctx *ctx);
 
 void tree_debug();
 
-void tree_cycle_node();
+int tree_cycle_node();
 
 void tree_close(tree_layout_node *node);
 
