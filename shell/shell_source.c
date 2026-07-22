@@ -92,7 +92,7 @@ void shell_handle_cmd(void *ctx, string_slice cmd){
     source_type_shell *buf_ctx = ctx;
     if (buf_ctx->header.type != shell_type_id) return;
     current_shell_ctx = buf_ctx;
-    run_cmd(buf_ctx->shell, cmd);
+    shell_interpret(buf_ctx->shell, cmd);
 }
 
 void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only){
