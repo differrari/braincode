@@ -6,3 +6,7 @@ dump
 build
 symbols.sym
 *.red/
+*-lin
+*-win
+*.app
+*.red

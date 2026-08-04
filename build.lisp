@@ -23,8 +23,9 @@
     ;     :name "brain"
     ;     :version "0.1a1"
     ;     :author "di"
+    ;     :exec "brain"
     ;     :categories "Developer"
-    ; ) :redacted)
+    ; ) (redbuild:native))
     ; (redbuild:install "brain.red")
     ; (redbuild:make "~/os" "run")
     (print "Done")
