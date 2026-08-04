@@ -9,6 +9,7 @@
 #include "shell/shell_source.h"
 #include "debug_print.h"
 #include "shell/sheldon/builtins.h"
+#include "environment/env_types.h"
 
 draw_ctx ctx;
 
@@ -196,6 +197,8 @@ int main(int argc, char *argv[]){
     ctx.width = 1920;
     ctx.height = 1080;
     request_app_ctx(&ctx);
+
+    env_set_window_info(&window_info_name_lit("brain"));
 
     // command_buffer.buf = buffer_create(0x100, buffer_can_grow);
 

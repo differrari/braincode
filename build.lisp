@@ -19,13 +19,13 @@
         :srcs (list "brain.c" "tree_layout.c" "file/file_source.c" "shell/shell_source.c")
 ) :add-dependencies t :run t :debug-symbols t :success (lambda () 
     (print (redbuild:emit-compile-commands))
-    ; (generate-build (make-instance `pack
-    ;     :name "brain"
-    ;     :version "0.1a1"
-    ;     :author "di"
-    ;     :exec "brain"
-    ;     :categories "Developer"
-    ; ) (redbuild:native))
+    (generate-build (make-instance `pack
+        :name "brain"
+        :version "0.1a1"
+        :author "di"
+        :exec "brain"
+        :categories "Developer"
+    ) (redbuild:native))
     ; (redbuild:install "brain.red")
     ; (redbuild:make "~/os" "run")
     (print "Done")

@@ -10,3 +10,5 @@ symbols.sym
 *-win
 *.app
 *.red
+AppDir/
+*.AppImage
