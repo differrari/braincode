@@ -12,3 +12,4 @@ symbols.sym
 *.red
 AppDir/
 *.AppImage
+*.dSYM
