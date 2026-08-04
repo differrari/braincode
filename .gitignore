@@ -10,3 +10,4 @@ symbols.sym
 *-win
 *.app
 *.red
+*.dSYM

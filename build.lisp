@@ -1,7 +1,7 @@
 (load "~/redbuild/v3/redbuild.lisp")
 (load "~/redbuild/packaging/packager.lisp")
 
-(redbuild:set-global-target :linux)
+(redbuild:set-global-target (redbuild:native))
 
 (redbuild:make "~/redlib" "cross")
 
