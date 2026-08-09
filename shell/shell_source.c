@@ -56,8 +56,8 @@ buffer sexp_to_string(codegen exp, codegen args){
     buffer_write(&buf, "%v ", cmd);
     while (args.ptr) {
         codegen arg = car(args);
-        if (!arg.ptr || arg.type != sem_rule_lisp_val) break;
-        lisp_val_code *code = arg.ptr;
+        if (!arg.ptr || arg.type != sem_rule_atom) break;
+        atom_code *code = arg.ptr;
         switch (code->type) {
             case car_identifier:
                 buffer_write(&buf, "%v ",code->val);
@@ -66,8 +66,11 @@ buffer sexp_to_string(codegen exp, codegen args){
                 if (code->val.length < 2) break;
                 buffer_write(&buf, "%v ",(string_slice){ code->val.data + 1, code->val.length-2 });
                 break;
-            case car_num:
-                buffer_write(&buf, "%i ",code->number);
+            case car_int:
+                buffer_write(&buf, "%i ",code->integer);
+                break;
+            case car_flo:
+                buffer_write(&buf, "%i ",code->floating);
                 break;
             case car_true:
             case car_none:

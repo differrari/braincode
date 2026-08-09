@@ -67,7 +67,7 @@ void* buf_page = 0;
 
 void* popuplate_tree_leaf(){
     if (!buf_page) buf_page = page_alloc(PAGE_SIZE);
-    return brain_create_shell_source(0, false);
+    return brain_create_file_source();
 }
 
 extern void cleanup_tree_leaf(int id, void*ctx){
@@ -194,8 +194,10 @@ void register_command_buffer_builtins(shell_handle *handle){
 int main(int argc, char *argv[]){
     print("Welcome to brain");
 
+#ifdef CROSS
     ctx.width = 1920;
     ctx.height = 1080;
+#endif
     request_app_ctx(&ctx);
 
     env_set_window_info(&window_info_name_lit("brain"));
