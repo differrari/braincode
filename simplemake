@@ -2,5 +2,6 @@
 # or use using https://github.com/differrari/redbuild/blob/main/Simplemakefile
 brain.c
 tree_layout.c
-file/file_source.c
-shell/shell_source.c
+modes/modes.c
+modes/file/file_source.c
+modes/shell/shell_source.c

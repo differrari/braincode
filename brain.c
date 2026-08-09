@@ -5,8 +5,9 @@
 #include "files/helpers.h"
 #include "math/rng.h"
 #include "brain.h"
-#include "file/file_source.h"
-#include "shell/shell_source.h"
+#include "modes/file/file_source.h"
+#include "modes/shell/shell_source.h"
+#include "modes/modes.h"
 #include "debug_print.h"
 #include "shell/sheldon/builtins.h"
 #include "environment/env_types.h"
@@ -22,13 +23,7 @@ typedef enum {
 
 color current_color = 0xFF362872;
 
-int source_count = 1;
-
 bool command_buffer_forward_input = false;
-
-int register_source_type(){
-    return source_count++;
-}
 
 source_type_shell *command_buffer;
 int current_buf = custom_buffers_count;
@@ -58,7 +53,6 @@ void save_current_buffer(){
     if (current_buf < custom_buffers_count) return;
     tree_layout_node *node = tree_find(current_buf);
     source_type_file *bctx = node->ctx;
-    print("Save %i to %S",current_buf,bctx->path);
     if (bctx->path.data)
         write_full_file(bctx->path.data, bctx->buf.buffer, bctx->buf.buffer_size);
 }
@@ -67,7 +61,7 @@ void* buf_page = 0;
 
 void* popuplate_tree_leaf(){
     if (!buf_page) buf_page = page_alloc(PAGE_SIZE);
-    return brain_create_file_source();
+    return create_mode_buffer_default();
 }
 
 extern void cleanup_tree_leaf(int id, void*ctx){
@@ -85,14 +79,18 @@ void close_command_buffer(int new_buf){
     in_command = false;
 }
 
+void refresh_buffer_fwd(){
+    if (command_buffer_forward_input)
+        command_buffer->header.text_info.placeholder = SLICE(">");
+    else 
+        command_buffer->header.text_info.placeholder = SLICE("|>");
+    buffer_wipe(&command_buffer->shell->out_buffer);
+}
+
 bool handle_command(string_slice cmd){
     if (slice_lit_match(cmd, "input", true)){
         command_buffer_forward_input = !command_buffer_forward_input;
-        if (command_buffer_forward_input)
-            command_buffer->header.text_info.placeholder = SLICE("->");
-        else 
-            command_buffer->header.text_info.placeholder = SLICE(">");
-        buffer_wipe(&command_buffer->shell->out_buffer);
+        refresh_buffer_fwd();
         return true;
     }
     if (command_buffer_forward_input){
@@ -191,8 +189,33 @@ void register_command_buffer_builtins(shell_handle *handle){
     REG_BUILTIN(open);
 }
 
+bool is_terminal_mode = true;
+
+void terminal_mode(){
+    mode_set_default(shell_type_id);
+    command_buffer_forward_input = true;
+    is_terminal_mode = true;
+}
+
+void parse_args(int argc, char*argv[]){
+    for (int i = 1; i < argc; i++){
+        if (slice_lit_match(SLICE("-terminal"), argv[i], true) || slice_lit_match(SLICE("-t"), argv[i], true)){
+            terminal_mode();
+        }
+    }
+}
+
 int main(int argc, char *argv[]){
     print("Welcome to brain");
+
+    brain_file_register();
+    brain_shell_register();
+
+    parse_args(argc, argv);
+
+#if TERMINAL
+    terminal_mode();
+#endif
 
 #ifdef CROSS
     ctx.width = 1920;
@@ -200,7 +223,10 @@ int main(int argc, char *argv[]){
 #endif
     request_app_ctx(&ctx);
 
-    env_set_window_info(&window_info_name_lit("brain"));
+    if (is_terminal_mode)
+        env_set_window_info(&window_info_name_lit("terminal"));
+    else 
+        env_set_window_info(&window_info_name_lit("brain"));
 
     // command_buffer.buf = buffer_create(0x100, buffer_can_grow);
 
@@ -209,11 +235,14 @@ int main(int argc, char *argv[]){
         .multiline = false,
         .cursor_color = 0xFFFFFFFF,
         .content = &command_buffer->shell->out_buffer,
-        .placeholder = SLICE("> "),
+        .placeholder = SLICE(""),
     };
+    refresh_buffer_fwd();
     buffer_wipe(&command_buffer->shell->out_buffer);
     
     init_tree(&ctx, brain_update_view, custom_buffers_count);
+
+    if (is_terminal_mode) open_command_buffer();
 
     rng_t rng = {};
     rng_seed(&rng, get_time());

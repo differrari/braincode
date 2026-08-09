@@ -1,7 +1,8 @@
 (load "~/redbuild/v3/redbuild.lisp")
 (load "~/redbuild/packaging/packager.lisp")
 
-(redbuild:set-global-target (redbuild:native))
+(defvar *terminal-mode* t)
+(redbuild:set-global-target :redacted)
 
 (redbuild:make "~/redlib" "cross")
 
@@ -9,24 +10,32 @@
 (defvar *beyond-interpreter* t)
 (redbuild:build-dep "~/beyond")
 
+(defmacro pname () (if *terminal-mode* "term" "brain"))
+
 (redbuild:build-dep "~/uno")
 
 (redbuild:quick-build (redbuild:make-instance `redbuild:redmod
-        :name "brain"
+        :name (pname)
         :type :bin
         :target (redbuild:dyn-target)
         :libs (list (redbuild:local-lib "uno" :lib "uno.a") (redbuild:local-lib "beyond" :lib "imaginal.a"))
-        :srcs (list "brain.c" "tree_layout.c" "file/file_source.c" "shell/shell_source.c")
-) :add-dependencies t :run t :debug-symbols t :success (lambda () 
-    (print (redbuild:emit-compile-commands))
+        :srcs (redbuild:all-sources-ignoring "c" (list "main.c" "build.c"))
+        :flags (list "-g" (if *terminal-mode* "-DTERMINAL"))
+) :add-dependencies t :run (not (eq (redbuild:dyn-target) :redacted)) :debug-symbols t :success (lambda () 
+    (redbuild:emit-compile-commands)
     (generate-build (make-instance `pack
-        :name "brain"
+        :name (pname)
         :version "0.1a1"
         :author "di"
-        :exec "brain"
+        :exec (pname)
         :categories "Developer"
-    ) (redbuild:native))
-    ; (redbuild:install "brain.red")
-    ; (redbuild:make "~/os" "run")
+        :id (concatenate `string "com.diferrari." (pname))
+    ) (redbuild:dyn-target))
+    (if (eq (redbuild:dyn-target) :redacted)
+        (progn
+            (redbuild:install (concatenate `string (pname) ".red"))
+            (redbuild:make "~/os" "run")
+        )
+    )
     (print "Done")
 ))

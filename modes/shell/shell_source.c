@@ -3,8 +3,13 @@
 #include "syscalls/syscalls.h"
 #include "interpreter/repl.h"
 #include "debug_print.h"
+#include "modes/modes.h"
 
 int shell_type_id = 0;
+
+void brain_shell_register(){
+    shell_type_id = register_mode_type(brain_create_default_shell_source);
+}
 
 void put_char(shell_handle *handle, char c){
     // source_type_shell *buf_ctx = handle->owner;
@@ -99,7 +104,7 @@ void shell_handle_cmd(void *ctx, string_slice cmd){
 }
 
 void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only){
-    if (!shell_type_id) shell_type_id = register_source_type();
+    if (!shell_type_id) brain_shell_register();
     source_type_shell *buf_ctx = zalloc(sizeof(source_type_shell));
     buf_ctx->header.type = shell_type_id;
     buf_ctx->header.command_handler = shell_handle_cmd;
@@ -121,4 +126,8 @@ void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only
     };
     buf_ctx->shell = handle;
     return buf_ctx;
+}
+
+void* brain_create_default_shell_source(){
+    return brain_create_shell_source(0, false);
 }

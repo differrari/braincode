@@ -12,4 +12,6 @@ typedef struct {
 
 void* brain_create_file_source();
 
+void brain_file_register();
+
 extern int file_type_id;
