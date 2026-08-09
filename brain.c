@@ -83,7 +83,7 @@ void refresh_buffer_fwd(){
     if (command_buffer_forward_input)
         command_buffer->header.text_info.placeholder = SLICE(">");
     else 
-        command_buffer->header.text_info.placeholder = SLICE("|>");
+        command_buffer->header.text_info.placeholder = SLICE(">:");
     buffer_wipe(&command_buffer->shell->out_buffer);
 }
 
@@ -189,7 +189,7 @@ void register_command_buffer_builtins(shell_handle *handle){
     REG_BUILTIN(open);
 }
 
-bool is_terminal_mode = true;
+bool is_terminal_mode = false;
 
 void terminal_mode(){
     mode_set_default(shell_type_id);
@@ -256,8 +256,8 @@ int main(int argc, char *argv[]){
         kbd_event ev = {};
         if (read_event(&ev)){
             if (!handle_modifier(&ev)){
-                if (ev.type == KEY_PRESS){
-                    if (is_mod_pressed(KEY_LEFTCTRL, true)){
+                if (ev.type == KEY_PRESS || ev.type == KEY_CONTINUE){
+                    if (is_mod_pressed(KEY_LEFTCTRL, true) && ev.type == KEY_PRESS){
                         switch (ev.key){
                             case KEY_UP: new_tree_node(tree_create_before | tree_create_vertical); break;
                             case KEY_DOWN: new_tree_node(tree_create_after | tree_create_vertical); break;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]){
                             case KEY_S: save_current_buffer(); break;
                             case KEY_W: tree_close_current(); break;
                         }
-                    } else if (is_mod_pressed(KEY_LEFTALT, true)){
+                    } else if (is_mod_pressed(KEY_LEFTALT, true) && ev.type == KEY_PRESS){
                         switch (ev.key) {
                             case KEY_S: save_current_buffer(); break;
                             case KEY_W: tree_close_current(); break;
