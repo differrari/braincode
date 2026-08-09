@@ -247,6 +247,8 @@ int main(int argc, char *argv[]){
     rng_t rng = {};
     rng_seed(&rng, get_time());
 
+    bool tree_has_key = false;
+
     while (!should_close_ctx()){
         fb_clear(&ctx, 0);
         tree_draw(&ctx);
@@ -274,8 +276,11 @@ int main(int argc, char *argv[]){
                             case KEY_ENTER: current_color = rng_next32(&rng); current_color |= 0xFF000000; print("Current color: #%#X",current_color); break;
                         }
                     }
-                    else tree_dispatch_kbd(ev, current_modifier);
+                    else tree_has_key |= tree_dispatch_kbd(ev, current_modifier);
                     tree_refresh();
+                } else if (tree_has_key){
+                    tree_dispatch_kbd(ev, current_modifier);
+                    tree_has_key = false;
                 }
             }
         }
