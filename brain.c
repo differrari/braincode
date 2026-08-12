@@ -97,8 +97,10 @@ bool handle_command(string_slice cmd){
         if (current_buf < custom_buffers_count) return false;
         tree_layout_node *node = tree_find(current_buf);
         buffer_source *bctx = node->ctx;
-        bctx->command_handler(bctx,cmd);
-        buffer_wipe(&command_buffer->shell->out_buffer);
+        if (bctx->command_handler){
+            bctx->command_handler(bctx,cmd);
+            buffer_wipe(&command_buffer->shell->out_buffer);
+        }
         return true;
     } else if (command_buffer->header.command_handler) {
         command_buffer->header.command_handler(command_buffer,cmd);
