@@ -1,3 +1,4 @@
+#include "files/data_signatures.h"
 #include "syscalls/syscalls.h"
 #include "tree_layout.h"
 #include "input_keycodes.h"
@@ -156,7 +157,7 @@ void switch_current_buffer_mode(char *str){
     } else if (strcmp("file", str) == 0){
         node->ctx = brain_create_file_source();
     }
-    
+
 }
 SHELLEY_CMD_FWD_1ARG(mode, switch_current_buffer_mode, string);
 
@@ -171,17 +172,9 @@ void current_buffer_open(char *str){
     fs_stat stat = {};
     // if (statf(str, &stat)){
         // if (stat.type != entry_file) return;//TODO: we should also handle directories
-        size_t size = 0;
-        char *contents = read_full_file(str, &size);
+        string_slice contents = read_file_slice(str);
         source_type_file *bfile = (source_type_file*)bctx;
-        bfile->buf = (buffer){
-            .buffer = contents,
-            .buffer_size = size,
-            .limit = size,
-            .options = buffer_can_grow,
-            .data_type = stat.data_type
-        };
-        bfile->path = string_from_literal(str);
+        brain_file_set_content(bfile, contents, str, stat.data_type);
     // }
 }
 SHELLEY_CMD_FWD_1ARG(open, current_buffer_open, string);
@@ -227,7 +220,7 @@ int main(int argc, char *argv[]){
 
     if (is_terminal_mode)
         env_set_window_info(&window_info_name_lit("terminal"));
-    else 
+    else
         env_set_window_info(&window_info_name_lit("brain"));
 
     // command_buffer.buf = buffer_create(0x100, buffer_can_grow);
@@ -241,7 +234,7 @@ int main(int argc, char *argv[]){
     };
     refresh_buffer_fwd();
     buffer_wipe(&command_buffer->shell->out_buffer);
-    
+
     init_tree(&ctx, brain_update_view, custom_buffers_count);
 
     if (is_terminal_mode) open_command_buffer();

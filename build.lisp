@@ -4,7 +4,7 @@
 (defvar *terminal-mode* nil)
 (redbuild:set-global-target (redbuild:native))
 
-(redbuild:make "~/redlib" "cross")
+(redbuild:make "~/diylib" "-j")
 
 (defvar *beyond-lib* t)
 (defvar *beyond-interpreter* t)
