@@ -177,7 +177,7 @@ void init_tree(draw_ctx *ctx, void (*custom_draw)(), int initial_id){
     if (initial_id) tree_id = initial_id;
     root = tree_alloc(tree_content);
     current_layout_node = root;
-    set_document_view(custom_draw ?: tree_draw_frame, draw_ctx_rect(ctx));
+    uno_set_document_view(custom_draw ?: tree_draw_frame, draw_ctx_rect(ctx));
     uno_focus(root->id);
 }
 

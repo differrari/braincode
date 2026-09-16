@@ -26,7 +26,10 @@ void* brain_create_file_source(){
         .piece_tree = &buf_ctx->tree,
         .placeholder = SLICE_LIT("new buffer"),
         .multiline = true,
-        .cursor_color = 0xFFFFFFFF
+        .cursor_color = 0xFFFFFFFF,
+        .cursor_limit = 1,
+        .cursor_count = 1,
+        .cursors = buf_ctx->header.cursors
     };
     return buf_ctx;
 }
