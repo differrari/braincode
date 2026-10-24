@@ -70,6 +70,4 @@ static inline void tree_refresh(){
     uno_refresh();
 }
 
-static inline bool tree_dispatch_mouse(mouse_data mouse, u8 modifier){
-    return uno_dispatch_mouse(mouse, modifier);
-}
+bool tree_dispatch_mouse(mouse_data mouse, u8 modifier);

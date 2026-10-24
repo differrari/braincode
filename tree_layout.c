@@ -148,6 +148,7 @@ void new_tree_node(tree_create_options opts){
         current_layout_node->next = 0;
     } else
         current_layout_node->next = sibling;
+    uno_refresh();
 }
 
 void debug_tree(tree_layout_node *node, int depth){
@@ -207,6 +208,7 @@ void tree_close_current(){
     tree_layout_node *old = current_layout_node;
     tree_cycle_node();
     tree_close(old);
+    uno_refresh();
 }
 
 bool tree_dispatch_kbd(kbd_event ev, u8 modifier){
@@ -222,4 +224,19 @@ bool tree_dispatch_kbd(kbd_event ev, u8 modifier){
         }
     }
     return uno_dispatch_kbd(ev, modifier);
+}
+
+bool tree_dispatch_mouse(mouse_data mouse, u8 modifier){
+    if (current_layout_node){
+        buffer_source *buf_ctx = current_layout_node->ctx;
+        //TODO: cba rn but this should be using some sort of dispatching system which might even power interfaces for beyond once done
+        if (buf_ctx->type == file_type_id){
+            if (brain_file_source_handle_mouse(buf_ctx,mouse,modifier)) return true;
+        } else if (buf_ctx->type == shell_type_id){
+            if (brain_shell_source_handle_mouse(buf_ctx,mouse,modifier)) return true;
+        } else if (buf_ctx->type == workspace_type_id){
+            if (brain_workspace_source_handle_mouse(buf_ctx, mouse, modifier)) return true;
+        }
+    }
+    return uno_dispatch_mouse(mouse, modifier);
 }

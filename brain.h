@@ -11,3 +11,4 @@ typedef struct {
 } buffer_source;
 
 int register_source_type();
+void current_buffer_open(char *str);

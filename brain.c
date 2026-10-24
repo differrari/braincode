@@ -150,15 +150,15 @@ void switch_current_buffer_mode(char *str){
     if (!node){ debug_print("Couldn't find %i buffer",current_buf); return; }
     buffer_source *bctx = node->ctx;
 
-    release(bctx);//TODO: proper cleanup
-
     if (strcmp("shell", str) == 0){
         node->ctx = brain_create_default_shell_source();
     } else if (strcmp("file", str) == 0){
         node->ctx = brain_create_file_source();
     } else if (strcmp("fileman", str) == 0){
         node->ctx = brain_create_default_workspace_source();
-    }
+    } else return;
+    
+    release(bctx);//TODO: proper cleanup
 
 }
 SHELLEY_CMD_FWD_1ARG(mode, switch_current_buffer_mode, string);
@@ -214,6 +214,7 @@ void handle_kbd(){
                     switch (ev.key){
                         case KEY_S: save_current_buffer(); return;
                         case KEY_W: tree_close_current(); return;
+                        case KEY_TAB: current_buf = tree_cycle_node(); in_command = false; uno_refresh(); return;
                     }
                 } else if (is_mod_pressed(KEY_LEFTALT, true) && ev.type == KEY_PRESS){
                     switch (ev.key) {
@@ -224,8 +225,7 @@ void handle_kbd(){
                         case KEY_S: save_current_buffer(); return;
                         case KEY_W: tree_close_current(); return;
                         case KEY_ESC: halt(0); return;
-                        case KEY_TAB: current_buf = tree_cycle_node(); in_command = false; return;
-                        case KEY_X: toggle_command_buffer(); return;
+                        case KEY_X: toggle_command_buffer(); uno_refresh(); return;
                         case KEY_ENTER: current_color = rng_next32(&rng); current_color |= 0xFF000000; print("Current color: #%#X",current_color); tree_refresh(); return;
                     }
                 }
