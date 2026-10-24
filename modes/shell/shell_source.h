@@ -6,7 +6,6 @@
 
 typedef struct {
     buffer_source header;
-    // buffer buf;
     shell_handle *shell;
 } source_type_shell;
 

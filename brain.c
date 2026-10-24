@@ -6,12 +6,12 @@
 #include "files/helpers.h"
 #include "math/rng.h"
 #include "brain.h"
-#include "modes/file/file_source.h"
-#include "modes/shell/shell_source.h"
+#include "modes/allmodes.h"
 #include "modes/modes.h"
 #include "debug_print.h"
 #include "shell/sheldon/builtins.h"
 #include "environment/env_types.h"
+#include "workspace/workspace.h"
 
 draw_ctx ctx;
 
@@ -35,14 +35,14 @@ void close_command_buffer(int new_buf);
 bool buf_mouse(document_node *node, mouse_data data, u8 modifier){
     if (mouse_button_down(&data, LMB))
         if (in_command)
-            close_command_buffer(node->input.tag);
+            close_command_buffer(node->info.tag);
     return uno_text_field_mouse(node, data, modifier);
 }
 
 document_node* on_draw_tree_leaf(int id, void *ctx, bool selected){
     uno_begin_vertical((node_info){.sizing_rule = size_fill});
-    source_type_file *buf_ctx = ctx;
-    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word_preserve_indent, .fg_color = 0xFFFFFFFF }, &buf_ctx->header.text_info);
+    buffer_source *buf_ctx = ctx;
+    document_node* doc_node = uno_text_field(id, (node_info){.sizing_rule = size_fill, .text_wrap_policy = wrap_word_preserve_indent, .fg_color = 0xFFFFFFFF, .text_formatting = buf_ctx->formatting }, &buf_ctx->text_info);
     doc_node->input.mouse_input = buf_mouse;
     if (selected)
         uno_label((node_info){.sizing_rule = size_fit, .fg_color = 0xFF847237, .bg_color = 0x55736126 }, doc_text_footnote, SLICE_LIT("CURRENT"));
@@ -153,9 +153,11 @@ void switch_current_buffer_mode(char *str){
     release(bctx);//TODO: proper cleanup
 
     if (strcmp("shell", str) == 0){
-        node->ctx = brain_create_shell_source(0, false);
+        node->ctx = brain_create_default_shell_source();
     } else if (strcmp("file", str) == 0){
         node->ctx = brain_create_file_source();
+    } else if (strcmp("fileman", str) == 0){
+        node->ctx = brain_create_default_workspace_source();
     }
 
 }
@@ -217,6 +219,8 @@ int main(int argc, char *argv[]){
     ctx.height = 1080;
 #endif
     request_app_ctx(&ctx);
+    
+    add_to_workspace(default_workspace(),SLICE("/home/di/braincode"));
 
     if (is_terminal_mode)
         env_set_window_info(&window_info_name_lit("terminal"));
@@ -243,9 +247,10 @@ int main(int argc, char *argv[]){
     rng_seed(&rng, get_time());
 
     bool tree_has_key = false;
-
+    
+    uno_clear_color(0);
+    
     while (!should_close_ctx()){
-        fb_clear(&ctx, 0);
         tree_draw(&ctx);
         commit_draw_ctx(&ctx);
         kbd_event ev = {};

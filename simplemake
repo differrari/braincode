@@ -5,3 +5,5 @@ tree_layout.c
 modes/modes.c
 modes/file/file_source.c
 modes/shell/shell_source.c
+modes/workspace/workspace_source.c
+workspace/workspace.c
