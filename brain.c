@@ -264,7 +264,7 @@ int main(int argc, char *argv[]){
 
     // command_buffer.buf = buffer_create(0x100, buffer_can_grow);
 
-    command_buffer = brain_create_shell_source(register_command_buffer_builtins, true);
+    command_buffer = brain_create_shell_source(register_command_buffer_builtins, true, true);
     command_buffer->header.text_info = (text_field_info){
         .multiline = false,
         .cursor_color = 0xFFFFFFFF,

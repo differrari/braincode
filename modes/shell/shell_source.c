@@ -103,12 +103,13 @@ void shell_handle_cmd(void *ctx, string_slice cmd){
     shell_interpret(buf_ctx->shell, cmd);
 }
 
-void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only){
+void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only, bool ignore_print){
     if (!shell_type_id) brain_shell_register();
     source_type_shell *buf_ctx = zalloc(sizeof(source_type_shell));
     buf_ctx->header.type = shell_type_id;
     buf_ctx->header.command_handler = shell_handle_cmd;
     shell_handle *handle = create_sheldon(terminal_bindings, buf_ctx, builtin);
+    handle->ignore_print_output = ignore_print;
     sheldon_ctx *shctx = handle->local_ctx;
     shctx->script_only = script_only;
     imaginal_repl_ctx *im = zalloc(sizeof(imaginal_repl_ctx));
@@ -129,7 +130,7 @@ void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only
 }
 
 void* brain_create_default_shell_source(){
-    return brain_create_shell_source(0, false);
+    return brain_create_shell_source(0, false, false);
 }
 
 bool brain_shell_source_handle_kbd(buffer_source *ctx, kbd_event ev, u8 modifier){

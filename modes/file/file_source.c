@@ -2,7 +2,6 @@
 #include "alloc/allocate.h"
 #include "data/struct/bt_tree.h"
 #include "files/buffer.h"
-#include "files/helpers.h"
 #include "modes/modes.h"
 #include "string/string.h"
 #include "uno.h"
@@ -20,8 +19,8 @@ void* brain_create_file_source(){
     source_type_file *buf_ctx = zalloc(sizeof(source_type_file));
     buf_ctx->buf = buffer_create(0x100, buffer_can_grow);
     buf_ctx->header.type = file_type_id;
-    // buf_ctx->tree = uno_text_make_piece_tree();
-    // buf_ctx->gap = buffer_create(0x100, buffer_can_grow);
+    buf_ctx->tree = uno_text_make_piece_tree();
+    buf_ctx->gap = buffer_create(0x100, buffer_can_grow);
 
     buf_ctx->header.text_info = (text_field_info){
         .content = &buf_ctx->buf,

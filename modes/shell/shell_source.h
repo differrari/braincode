@@ -13,7 +13,7 @@ extern int shell_type_id;
 
 void brain_shell_register();
 
-void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only);
+void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only, bool ignore_print);
 
 void* brain_create_default_shell_source();
 
