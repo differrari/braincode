@@ -202,6 +202,43 @@ void parse_args(int argc, char*argv[]){
     }
 }
 
+bool tree_has_key = false;
+rng_t rng = {};
+
+void handle_kbd(){
+    kbd_event ev = {};
+    if (read_event(&ev)){
+        if (!handle_modifier(&ev)){
+            if (ev.type == KEY_PRESS || ev.type == KEY_CONTINUE){
+                if (is_mod_pressed(KEY_LEFTCTRL, true) && ev.type == KEY_PRESS){
+                    switch (ev.key){
+                        case KEY_S: save_current_buffer(); return;
+                        case KEY_W: tree_close_current(); return;
+                    }
+                } else if (is_mod_pressed(KEY_LEFTALT, true) && ev.type == KEY_PRESS){
+                    switch (ev.key) {
+                        case KEY_UP: new_tree_node(tree_create_before | tree_create_vertical); return;
+                        case KEY_DOWN: new_tree_node(tree_create_after | tree_create_vertical); return;
+                        case KEY_LEFT: new_tree_node(tree_create_before | tree_create_horizontal); return;
+                        case KEY_RIGHT: new_tree_node(tree_create_after | tree_create_horizontal); return;
+                        case KEY_S: save_current_buffer(); return;
+                        case KEY_W: tree_close_current(); return;
+                        case KEY_ESC: halt(0); return;
+                        case KEY_TAB: current_buf = tree_cycle_node(); in_command = false; return;
+                        case KEY_X: toggle_command_buffer(); return;
+                        case KEY_ENTER: current_color = rng_next32(&rng); current_color |= 0xFF000000; print("Current color: #%#X",current_color); tree_refresh(); return;
+                    }
+                }
+                tree_has_key |= tree_dispatch_kbd(ev, current_modifier);
+                tree_refresh();
+            } else if (tree_has_key){
+                tree_dispatch_kbd(ev, current_modifier);
+                tree_has_key = false;
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]){
     print("Welcome to brain");
 
@@ -219,8 +256,6 @@ int main(int argc, char *argv[]){
     ctx.height = 1080;
 #endif
     request_app_ctx(&ctx);
-    
-    add_to_workspace(default_workspace(),SLICE("/home/di/braincode"));
 
     if (is_terminal_mode)
         env_set_window_info(&window_info_name_lit("terminal"));
@@ -242,48 +277,20 @@ int main(int argc, char *argv[]){
     init_tree(&ctx, brain_update_view, custom_buffers_count);
 
     if (is_terminal_mode) open_command_buffer();
-
-    rng_t rng = {};
+    
     rng_seed(&rng, get_time());
-
-    bool tree_has_key = false;
+    
+    // file descriptor = {};
+    // openf("/lfsp/new", &descriptor);
+    
+    // current_buffer_open("/lfsp/0/src");
     
     uno_clear_color(0);
     
     while (!should_close_ctx()){
         tree_draw(&ctx);
         commit_draw_ctx(&ctx);
-        kbd_event ev = {};
-        if (read_event(&ev)){
-            if (!handle_modifier(&ev)){
-                if (ev.type == KEY_PRESS || ev.type == KEY_CONTINUE){
-                    if (is_mod_pressed(KEY_LEFTCTRL, true) && ev.type == KEY_PRESS){
-                        switch (ev.key){
-                            case KEY_UP: new_tree_node(tree_create_before | tree_create_vertical); break;
-                            case KEY_DOWN: new_tree_node(tree_create_after | tree_create_vertical); break;
-                            case KEY_LEFT: new_tree_node(tree_create_before | tree_create_horizontal); break;
-                            case KEY_RIGHT: new_tree_node(tree_create_after | tree_create_horizontal); break;
-                            case KEY_ESC: halt(0); break;
-                            case KEY_TAB: current_buf = tree_cycle_node(); in_command = false; break;
-                            case KEY_X: toggle_command_buffer(); break;
-                            case KEY_S: save_current_buffer(); break;
-                            case KEY_W: tree_close_current(); break;
-                        }
-                    } else if (is_mod_pressed(KEY_LEFTALT, true) && ev.type == KEY_PRESS){
-                        switch (ev.key) {
-                            case KEY_S: save_current_buffer(); break;
-                            case KEY_W: tree_close_current(); break;
-                            case KEY_ENTER: current_color = rng_next32(&rng); current_color |= 0xFF000000; print("Current color: #%#X",current_color); break;
-                        }
-                    }
-                    else tree_has_key |= tree_dispatch_kbd(ev, current_modifier);
-                    tree_refresh();
-                } else if (tree_has_key){
-                    tree_dispatch_kbd(ev, current_modifier);
-                    tree_has_key = false;
-                }
-            }
-        }
+        handle_kbd();
         mouse_data data = {};
         get_mouse_status(&data);
         tree_dispatch_mouse(data, 0);

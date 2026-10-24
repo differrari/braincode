@@ -16,3 +16,5 @@ void brain_shell_register();
 void* brain_create_shell_source(void (*builtin)(shell_handle*), bool script_only);
 
 void* brain_create_default_shell_source();
+
+bool brain_shell_source_handle_kbd(buffer_source *ctx, kbd_event ev, u8 modifier);

@@ -64,10 +64,7 @@ static inline void tree_draw(draw_ctx *ctx){
     uno_draw(ctx);
 }
 
-static inline bool tree_dispatch_kbd(kbd_event ev, u8 modifier){
-    // Get the current buffer and send events to it, if it returns false then run this code
-    return uno_dispatch_kbd(ev, modifier);
-}
+bool tree_dispatch_kbd(kbd_event ev, u8 modifier);
 
 static inline void tree_refresh(){
     uno_refresh();

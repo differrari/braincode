@@ -2,6 +2,8 @@
 #include "uno.h"
 #include "utils/indent.h"
 #include "syscalls/syscalls.h"
+#include "brain.h"
+#include "modes/allmodes.h"
 
 tree_layout_node *root;
 tree_layout_node *current_layout_node;
@@ -205,4 +207,19 @@ void tree_close_current(){
     tree_layout_node *old = current_layout_node;
     tree_cycle_node();
     tree_close(old);
+}
+
+bool tree_dispatch_kbd(kbd_event ev, u8 modifier){
+    if (current_layout_node){
+        buffer_source *buf_ctx = current_layout_node->ctx;
+        //TODO: cba rn but this should be using some sort of dispatching system which might even power interfaces for beyond once done
+        if (buf_ctx->type == file_type_id){
+            if (brain_file_source_handle_kbd(buf_ctx,ev,modifier)) return true;
+        } else if (buf_ctx->type == shell_type_id){
+            if (brain_shell_source_handle_kbd(buf_ctx,ev,modifier)) return true;
+        } else if (buf_ctx->type == workspace_type_id){
+            if (brain_workspace_source_handle_kbd(buf_ctx,ev,modifier)) return true;
+        }
+    }
+    return uno_dispatch_kbd(ev, modifier);
 }
